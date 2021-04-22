@@ -1,16 +1,12 @@
 {
-  "name": "react-table",
-  "version": "1.0.0-semantic-release",
+  "name": "@jfront/react-table",
+  "version": "1.0.0",
   "description": "Hooks for building lightweight, fast and extendable datagrids for React",
   "license": "MIT",
   "homepage": "https://react-table.tanstack.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tannerlinsley/react-table"
-  },
-  "funding": {
-    "type": "github",
-    "url": "https://github.com/sponsors/tannerlinsley"
+    "url": "https://github.com/Jepria/react-table"
   },
   "keywords": [
     "react",
@@ -19,6 +15,8 @@
     "datagrid"
   ],
   "main": "index.js",
+  "types": "index.d.ts",
+  "typings": "index.d.ts",
   "scripts": {
     "test": "is-ci \"test:ci\" \"test:dev\"",
     "test:dev": "jest --watch",
@@ -46,9 +44,11 @@
   "files": [
     "CHANGELOG.md",
     "src/**/*.js",
+    "index.d.ts",
     "dist",
     "README.md",
-    "scripts/"
+    "scripts/",
+    "tsconfig.json"
   ],
   "browserslist": "> 0.25%, not dead",
   "peerDependencies": {
@@ -107,6 +107,7 @@
     "rollup-plugin-size": "^0.2.1",
     "rollup-plugin-size-snapshot": "^0.10.0",
     "rollup-plugin-terser": "^5.1.2",
-    "serve": "^11.2.0"
+    "serve": "^11.2.0",
+    "typescript": "^4.2.4"
   }
 }

@@ -1,7 +1,7 @@
 import React from 'react'
 import { render, fireEvent } from '@testing-library/react'
 import { useTable } from '../../hooks/useTable'
-import { useBlockLayout } from '../useBlockLayout'
+import { useFlexLayout } from '../useFlexLayout'
 import { useResizeColumns } from '../useResizeColumns'
 
 const data = [
@@ -52,7 +52,7 @@ function Table({ columns, data }) {
       data,
       defaultColumn,
     },
-    useBlockLayout,
+    useFlexLayout,
     useResizeColumns
   )
 
@@ -173,7 +173,6 @@ test('table can be resized by a mouse', () => {
   const infoResizer = rtl
     .getAllByRole('separator')
     .find(d => d.previousSibling.textContent === 'Info')
-
   expect(rtl.getAllByRole('columnheader').map(d => d.style.width)).toEqual(
     sizesBefore
   )

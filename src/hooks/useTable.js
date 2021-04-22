@@ -25,7 +25,10 @@ import makeDefaultPluginHooks from '../makeDefaultPluginHooks'
 import { useColumnVisibility } from './useColumnVisibility'
 
 const defaultInitialState = {}
-const defaultColumnInstance = {}
+const defaultColumnInstance = {
+  minWidth: 30,
+  width: 150,
+}
 const defaultReducer = (state, action, prevState) => state
 const defaultGetSubRows = (row, index) => row.subRows || []
 const defaultGetRowId = (row, index, parent) =>

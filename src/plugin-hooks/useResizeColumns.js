@@ -1,4 +1,5 @@
 import React from 'react'
+import ReactDOM from 'react-dom'
 
 import {
   actions,
@@ -18,10 +19,12 @@ defaultColumn.canResize = true
 actions.columnStartResizing = 'columnStartResizing'
 actions.columnResizing = 'columnResizing'
 actions.columnDoneResizing = 'columnDoneResizing'
+actions.columnEndResizing = 'columnEndResizing'
 actions.resetResize = 'resetResize'
 
 export const useResizeColumns = hooks => {
   hooks.getResizerProps = [defaultGetResizerProps]
+  hooks.getTableProps.push(getTableProps)
   hooks.getHeaderProps.push({
     style: {
       position: 'relative',
@@ -32,10 +35,73 @@ export const useResizeColumns = hooks => {
   hooks.useInstanceBeforeDimensions.push(useInstanceBeforeDimensions)
 }
 
+const getTableProps = (props, { instance }) => {
+  const { state } = instance
+  if (state?.columnResizing?.isResizingColumn != null) {
+    return [
+      props,
+      {
+        style: {
+          ...props.style,
+          MozUserSelect: 'none',
+          WebkitUserSelect: 'none',
+          msUserSelect: 'none',
+          userSelect: 'none',
+        },
+      },
+    ]
+  } else {
+    return [
+      props,
+      {
+        style: {
+          ...props.style,
+        },
+      },
+    ]
+  }
+}
+
+const Preview = React.forwardRef(({ id, component }, ref) => {
+  if (component) {
+    return ReactDOM.createPortal(
+      React.createElement(component, {
+        id: id,
+        ref: ref,
+        style: {
+          display: 'none',
+          position: 'absolute'
+        },
+      }),
+      document.body
+    )
+  } else {
+    return ReactDOM.createPortal(
+      <div
+        id={id}
+        ref={ref}
+        style={{
+          display: 'none',
+          position: 'absolute',
+          height: '100vh',
+          width: '2px',
+          boxSizing: 'border-box',
+          borderLeft: '1px solid black',
+        }}
+      />,
+      document.body
+    )
+  }
+})
+
 const defaultGetResizerProps = (props, { instance, header }) => {
-  const { dispatch } = instance
+  const { dispatch, preview } = instance
+  const previewRef = React.createRef()
 
   const onResizeStart = (e, header) => {
+    previewRef.current.style.display = 'block'
+    previewRef.current.style.top = `${e.target.getBoundingClientRect().top}px`
+
     let isTouchEvent = false
     if (e.type === 'touchstart') {
       // lets not respond to multiple touches (e.g. 2 or 3 fingers)
@@ -44,55 +110,90 @@ const defaultGetResizerProps = (props, { instance, header }) => {
       }
       isTouchEvent = true
     }
+
     const headersToResize = getLeafHeaders(header)
     const headerIdWidths = headersToResize.map(d => [d.id, d.totalWidth])
-
     const clientX = isTouchEvent ? Math.round(e.touches[0].clientX) : e.clientX
+    previewRef.current.style.left = `${clientX}px`
 
-    const dispatchMove = clientXPos => {
-      dispatch({ type: actions.columnResizing, clientX: clientXPos })
+    const dispatchMoveEnd = clientXPos =>
+      dispatch({ type: actions.columnEndResizing, clientX: clientXPos })
+
+    const mouseMoveHandler = previewRef => {
+      const ref = previewRef.current
+      return e => {
+        ref.style.left = `${e.clientX}px`
+      }
     }
-    const dispatchEnd = () => dispatch({ type: actions.columnDoneResizing })
+
+    const mouseEndHandler = previewRef => {
+      const ref = previewRef.current
+      return e => {
+        ref.style.display = 'none'
+        document.removeEventListener(
+          'mousemove',
+          handlersAndEvents.mouse.moveHandler
+        )
+        document.removeEventListener(
+          'mouseup',
+          handlersAndEvents.mouse.upHandler
+        )
+        document.removeEventListener(
+          'mouseleave',
+          handlersAndEvents.mouse.leaveHandler
+        )
+        dispatchMoveEnd(e.clientX)
+      }
+    }
+
+    const touchMoveHandler = previewRef => {
+      const ref = previewRef.current
+      return e => {
+        if (e.cancelable) {
+          e.preventDefault()
+          e.stopPropagation()
+        }
+        ref.style.left = `${e.touches[0].clientX}px`
+        return false
+      }
+    }
+
+    const touchEndHandler = previewRef => {
+      const ref = previewRef.current
+      return e => {
+        ref.style.display = 'none'
+        document.removeEventListener(
+          handlersAndEvents.touch.moveEvent,
+          handlersAndEvents.touch.moveHandler
+        )
+        document.removeEventListener(
+          handlersAndEvents.touch.upEvent,
+          handlersAndEvents.touch.upHandler
+        )
+        document.removeEventListener(
+          handlersAndEvents.touch.leaveEvent,
+          handlersAndEvents.touch.leaveHandler
+        )
+        dispatchMoveEnd((e.touches[0] || e.changedTouches[0]).clientX)
+      }
+    }
 
     const handlersAndEvents = {
       mouse: {
         moveEvent: 'mousemove',
-        moveHandler: e => dispatchMove(e.clientX),
+        moveHandler: mouseMoveHandler(previewRef),
         upEvent: 'mouseup',
-        upHandler: e => {
-          document.removeEventListener(
-            'mousemove',
-            handlersAndEvents.mouse.moveHandler
-          )
-          document.removeEventListener(
-            'mouseup',
-            handlersAndEvents.mouse.upHandler
-          )
-          dispatchEnd()
-        },
+        upHandler: mouseEndHandler(previewRef),
+        leaveEvent: 'mouseleave',
+        leaveHandler: mouseEndHandler(previewRef),
       },
       touch: {
         moveEvent: 'touchmove',
-        moveHandler: e => {
-          if (e.cancelable) {
-            e.preventDefault()
-            e.stopPropagation()
-          }
-          dispatchMove(e.touches[0].clientX)
-          return false
-        },
+        moveHandler: touchMoveHandler(previewRef),
         upEvent: 'touchend',
-        upHandler: e => {
-          document.removeEventListener(
-            handlersAndEvents.touch.moveEvent,
-            handlersAndEvents.touch.moveHandler
-          )
-          document.removeEventListener(
-            handlersAndEvents.touch.upEvent,
-            handlersAndEvents.touch.moveHandler
-          )
-          dispatchEnd()
-        },
+        upHandler: touchEndHandler(previewRef),
+        leaveEvent: 'touchcancel',
+        leaveHandler: touchEndHandler(previewRef),
       },
     }
 
@@ -112,7 +213,11 @@ const defaultGetResizerProps = (props, { instance, header }) => {
       events.upHandler,
       passiveIfSupported
     )
-
+    document.addEventListener(
+      events.leaveEvent,
+      events.leaveHandler,
+      passiveIfSupported
+    )
     dispatch({
       type: actions.columnStartResizing,
       columnId: header.id,
@@ -132,6 +237,11 @@ const defaultGetResizerProps = (props, { instance, header }) => {
       },
       draggable: false,
       role: 'separator',
+      children: React.createElement(Preview, {
+        id: header.id + '_resizer_preview',
+        ref: previewRef,
+        component: preview,
+      }),
     },
   ]
 }
@@ -210,9 +320,43 @@ function reducer(state, action) {
       },
     }
   }
+
+  if (action.type === actions.columnEndResizing) {
+    const { clientX } = action
+    const { startX, columnWidth, headerIdWidths = [] } = state.columnResizing
+
+    const deltaX = clientX - startX
+    const percentageDeltaX = deltaX / columnWidth
+
+    const newColumnWidths = {}
+
+    headerIdWidths.forEach(([headerId, headerWidth]) => {
+      newColumnWidths[headerId] = Math.max(
+        headerWidth + headerWidth * percentageDeltaX,
+        0
+      )
+    })
+
+    return {
+      ...state,
+      columnResizing: {
+        ...state.columnResizing,
+        columnWidths: {
+          ...state.columnResizing.columnWidths,
+          ...newColumnWidths,
+        },
+        startX: null,
+        isResizingColumn: null,
+      },
+    }
+  }
 }
 
 const useInstanceBeforeDimensions = instance => {
+  const { plugins } = instance
+  
+  ensurePluginOrder(plugins, ['useFlexLayout'], 'useResizeColumns')
+
   const {
     flatHeaders,
     disableResizing,
@@ -246,9 +390,7 @@ const useInstanceBeforeDimensions = instance => {
 }
 
 function useInstance(instance) {
-  const { plugins, dispatch, autoResetResize = true, columns } = instance
-
-  ensurePluginOrder(plugins, ['useAbsoluteLayout'], 'useResizeColumns')
+  const { dispatch, autoResetResize = true, columns } = instance
 
   const getAutoResetResize = useGetLatest(autoResetResize)
   useMountedLayoutEffect(() => {

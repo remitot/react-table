@@ -141,17 +141,17 @@ test('renders a table', () => {
   const [headerRow, , firstRow] = rendered.queryAllByRole('row')
 
   expect(headerRow.getAttribute('style')).toEqual(
-    'display: flex; flex: 1 0 auto; min-width: 800px;'
+    'box-sizing: border-box; display: flex; flex: 1 0 auto; min-width: 800px;'
   )
 
   expect(
     Array.from(firstRow.children).map(d => d.getAttribute('style'))
   ).toEqual([
-    'box-sizing: border-box; flex: 0 0 auto; min-width: 100px; width: 250px;',
-    'box-sizing: border-box; flex: 0 0 auto; min-width: 100px; width: 300px;',
-    'box-sizing: border-box; flex: 0 0 auto; min-width: 300px; width: 300px;',
-    'box-sizing: border-box; flex: 0 0 auto; min-width: 100px; width: 150px;',
-    'box-sizing: border-box; flex: 0 0 auto; min-width: 100px; width: 200px;',
-    'box-sizing: border-box; flex: 0 0 auto; min-width: 100px; width: 200px;',
+    'display: inline-flex; box-sizing: border-box; width: 250px;',
+    'display: inline-flex; box-sizing: border-box; width: 300px;',
+    'display: inline-flex; box-sizing: border-box; width: 300px;',
+    'display: inline-flex; box-sizing: border-box; width: 150px;',
+    'display: inline-flex; box-sizing: border-box; width: 200px;',
+    'display: inline-flex; box-sizing: border-box; width: 200px;',
   ])
 })
