@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Hooks for building lightweight, fast and extendable datagrids for React",
   "license": "MIT",
-  "homepage": "https://react-table.tanstack.com",
   "repository": {
     "type": "git",
     "url": "https://github.com/Jepria/react-table"
